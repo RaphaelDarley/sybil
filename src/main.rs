@@ -1,13 +1,15 @@
 use std::sync::Arc;
 
 use crate::http_handler;
-use sybil::*;
+use sybil::{db_utils::make_or_load_ds_and_sess, *};
 use tokio::sync::Mutex;
 use warp::Filter;
 
 #[tokio::main]
 async fn main() {
-    let state: State = Arc::new(Mutex::new(InnerState::new_default()));
+    let state: State = Arc::new(InnerState {
+        dsconn: make_or_load_ds_and_sess("memory").await.unwrap(),
+    });
 
     let ws_route = warp::path("ws")
         .and(warp::ws())
