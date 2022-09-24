@@ -20,14 +20,12 @@ impl DSConn {
         txt: &str,
         vars: Option<BTreeMap<String, Value>>,
         strict: bool,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<Vec<surrealdb::Response>, surrealdb::Error> {
         self.ds
             .lock()
             .await
             .execute(txt, &self.ses, vars, strict)
-            .await?;
-
-        Ok(())
+            .await
     }
 }
 

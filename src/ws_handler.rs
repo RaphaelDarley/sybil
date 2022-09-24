@@ -1,5 +1,8 @@
+use std::collections::BTreeMap;
+
 use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
+use surrealdb::sql::{Strand, Value};
 use warp::ws::WebSocket;
 use warp::ws::{self, Message};
 
@@ -46,7 +49,7 @@ pub async fn ws_connection(ws: WebSocket, state: State) {
 async fn handle_text_msg(message: Message, state: State) -> Option<Message> {
     let msg = message.to_str().unwrap();
 
-    let req: WSReq = match serde_json::from_str(msg) {
+    let req: Req = match serde_json::from_str(msg) {
         Ok(r) => r,
         Err(e) => {
             println!("JSON parsing ERROR: {:?}", e);
@@ -56,40 +59,68 @@ async fn handle_text_msg(message: Message, state: State) -> Option<Message> {
 
     println!("{:?}", req);
 
-    match req.cmd {
-        Cmd::Create => handle_create(req, state).await,
-        Cmd::Read => {
-            return Some(Message::text(
-                db_visits_as_json(&state.dsconn).await.unwrap(),
-            ))
-        }
-        _ => {}
+    match req {
+        Req::Create(c) => handle_create(c, state).await,
+        Req::Read(r) => handle_read(r, state).await,
+        _ => None,
     }
+}
 
-    // Some(Message::text("Test reply"))
+async fn handle_create(req: CreateReq, state: State) -> Option<Message> {
+    let mut vars = BTreeMap::new();
+    vars.insert(
+        "text".to_string(),
+        surrealdb::sql::Value::Strand(Strand::from(req.text)),
+    );
+    state
+        .dsconn
+        .execute(
+            "CREATE item SET time_created = time::now(), text = $text",
+            Some(vars),
+            false,
+        )
+        .await
+        .unwrap();
+
     None
 }
 
-async fn handle_create(req: WSReq, state: State) {
-    state
+async fn handle_read(req: ReadReq, state: State) -> Option<Message> {
+    // let mut vars = BTreeMap::new();
+    // vars.insert(
+    //     "text".to_string(),
+    //     surrealdb::sql::Value::Strand(Strand::from(req.text)),
+    // );
+    let select_response = state
         .dsconn
-        .execute("CREATE visit SET time = time::now()", None, false)
+        .execute("SELECT * FROM item", None, false)
         .await
         .unwrap();
-}
 
-#[derive(Deserialize, Debug)]
-struct WSReq {
-    cmd: Cmd,
-    item_id: Option<String>,
-    item_text: Option<String>,
+    let select_result = select_response[0].output().unwrap();
+
+    if let Value::Array(rows) = select_result {
+        Some(Message::text(serde_json::to_string(rows).unwrap()))
+    } else {
+        panic!("DB vists hasn't returned array of rows")
+    }
 }
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "lowercase")]
-enum Cmd {
-    Create,
-    Read,
+enum Req {
+    Create(CreateReq),
+    Read(ReadReq),
     Update,
     Delete,
+}
+
+#[derive(Deserialize, Debug)]
+struct CreateReq {
+    text: String,
+}
+
+#[derive(Deserialize, Debug)]
+struct ReadReq {
+    text_search: Option<String>,
 }
