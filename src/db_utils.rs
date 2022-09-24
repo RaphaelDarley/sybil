@@ -1,7 +1,6 @@
-use surrealdb::{
-    sql::{Data, Value},
-    Datastore, Session,
-};
+use std::collections::BTreeMap;
+
+use surrealdb::{sql::Value, Datastore, Session};
 use tokio::sync::Mutex;
 
 pub struct DBConfig {
@@ -13,6 +12,23 @@ pub struct DBConfig {
 pub struct DSConn {
     ds: Mutex<Datastore>,
     ses: Session,
+}
+
+impl DSConn {
+    pub async fn execute(
+        &self,
+        txt: &str,
+        vars: Option<BTreeMap<String, Value>>,
+        strict: bool,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        self.ds
+            .lock()
+            .await
+            .execute(txt, &self.ses, vars, strict)
+            .await?;
+
+        Ok(())
+    }
 }
 
 pub async fn make_or_load_ds_and_sess(path: &str) -> Result<DSConn, Box<dyn std::error::Error>> {
@@ -45,7 +61,21 @@ pub async fn add_visit_record(dsconn: &DSConn) -> Result<(), Box<dyn std::error:
     Ok(())
 }
 
-pub async fn print_db_entries(dsconn: &DSConn) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn db_visits_as_json(dsconn: &DSConn) -> Result<String, Box<dyn std::error::Error>> {
+    let ds = dsconn.ds.lock().await;
+    let ses = &dsconn.ses;
+    let select_response = ds.execute("SELECT * FROM visit;", ses, None, false).await?;
+
+    let select_result = select_response[0].output().unwrap();
+
+    if let Value::Array(rows) = select_result {
+        Ok(serde_json::to_string(rows)?)
+    } else {
+        panic!("DB vists hasn't returned array of rows")
+    }
+}
+
+pub async fn print_db_visits(dsconn: &DSConn) -> Result<(), Box<dyn std::error::Error>> {
     let ds = dsconn.ds.lock().await;
     let ses = &dsconn.ses;
     let select_response = ds.execute("SELECT * FROM visit;", ses, None, false).await?;
@@ -59,6 +89,5 @@ pub async fn print_db_entries(dsconn: &DSConn) -> Result<(), Box<dyn std::error:
             }
         }
     }
-
     Ok(())
 }
