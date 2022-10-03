@@ -24,18 +24,19 @@ pub async fn ws_connection(ws: WebSocket, state: State) {
                 //     Ok(_) => {}
                 //     Err(e) => println!("Websocket ERROR: {:?}", e),
                 // }
-                match msg.is_text() {
-                    true => {
-                        if let Some(reply) = handle_text_msg(msg, state.clone()).await {
-                            match ws_tx.send(reply).await {
-                                Ok(_) => {}
-                                Err(e) => println!("Websocket ERROR: {:?}", e),
-                            }
-                        };
-                    }
-                    false => {
-                        println!("Websocket ERROR: Binary message not supported");
-                    }
+
+                if msg.is_text() {
+                    if let Some(reply) = handle_text_msg(msg, state.clone()).await {
+                        match ws_tx.send(reply).await {
+                            Ok(_) => {}
+                            Err(e) => println!("Websocket ERROR: {:?}", e),
+                        }
+                    };
+                } else if msg.is_binary() {
+                    println!("Websocket ERROR: Binary message not supported");
+                    println!("{:?}", msg);
+                } else if msg.is_close() {
+                    return;
                 }
             }
             Err(e) => {
