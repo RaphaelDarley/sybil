@@ -2599,6 +2599,7 @@ dependencies = [
  "serde_json",
  "surrealdb",
  "tokio",
+ "tokio-stream",
  "uuid",
  "warp",
 ]
