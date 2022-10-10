@@ -117,14 +117,34 @@ async fn handle_create(
 }
 
 async fn handle_read(req: ReadReq, state: State, tx: UnboundedSender<Message>) -> Option<Message> {
-    // let mut vars = BTreeMap::new();
-    // vars.insert(
-    //     "text".to_string(),
-    //     surrealdb::sql::Value::Strand(Strand::from(req.text)),
-    // );
+    let mut vars = BTreeMap::new();
+    let mut where_stmt = vec![];
+
+    if let Some(text_search) = req.text_search {
+        vars.insert(
+            "text_search".to_string(),
+            surrealdb::sql::Value::Strand(Strand::from(text_search)),
+        );
+        where_stmt.push("text ~ $text_search");
+    }
+
+    let where_stmt = where_stmt.join(" && ");
+
+    let mut query = "SELECT * FROM item".to_string();
+
+    if where_stmt != "" {
+        query += " WHERE ";
+        query += &where_stmt;
+    }
+
+    query += ";";
+
+    println!("{}", query);
+    println!("{:?}", vars);
+
     let select_response = state
         .dsconn
-        .execute("SELECT * FROM item", None, false)
+        .execute(&query, Some(vars), false)
         .await
         .unwrap();
 

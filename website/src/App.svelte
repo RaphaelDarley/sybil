@@ -2,21 +2,9 @@
 	let items = [];
 	let websocketStatus = "initial";
 	let textToAdd;
+	let textSearch;
 
-	// setInterval(() => {
-	// 	console.log(document.hasFocus());
-	// 	console.log(websocket.readyState);
-	// }, 1000);
-
-	// document.addEventListener(
-	// 	"onfocus",
-	// 	() => {
-	// 		console.log("focussed");
-	// 	},
-	// 	true
-	// );
-
-	const websocket = new WebSocket("ws://192.168.1.13:5000/ws");
+	const websocket = new WebSocket("ws://192.168.1.72:5000/ws");
 	websocket.addEventListener("open", () => {
 		console.log("websocket connected");
 		websocketStatus = "open";
@@ -38,10 +26,21 @@
 		<h2>Websocket disconnected</h2>
 	{/if}
 
+	<input
+		type="text"
+		name="text_search"
+		id="text_search"
+		bind:value={textSearch}
+	/>
+
 	<button
 		on:click={() => {
-			websocket.send('{"read": {}}');
-		}}>update</button
+			// websocket.send('{"read": {}}');
+			textSearch = textSearch == "" ? null : textSearch;
+			websocket.send(
+				JSON.stringify({ read: { text_search: textSearch } })
+			);
+		}}>search</button
 	>
 
 	<label for="text">new note text:</label>

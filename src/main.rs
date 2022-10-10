@@ -8,8 +8,8 @@ use warp::Filter;
 #[tokio::main]
 async fn main() {
     let state: State = Arc::new(InnerState {
-        // dsconn: make_or_load_ds_and_sess("file://database").await.unwrap(),
-        dsconn: make_or_load_ds_and_sess("memory").await.unwrap(),
+        dsconn: make_or_load_ds_and_sess("file://database").await.unwrap(),
+        // dsconn: make_or_load_ds_and_sess("memory").await.unwrap(),
     });
 
     let ws_route = warp::path("ws")
