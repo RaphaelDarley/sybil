@@ -4,7 +4,7 @@
 	let textToAdd;
 	let textSearch;
 
-	const websocket = new WebSocket("ws://192.168.1.72:5000/ws");
+	const websocket = new WebSocket("ws://127.0.0.1:5000/ws");
 	websocket.addEventListener("open", () => {
 		console.log("websocket connected");
 		websocketStatus = "open";
