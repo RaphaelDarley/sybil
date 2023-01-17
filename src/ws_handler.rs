@@ -1,18 +1,17 @@
 use std::collections::BTreeMap;
 
+use axum::extract::ws::{Message, WebSocket};
 use futures_util::stream::SplitSink;
 use futures_util::{SinkExt, StreamExt, TryFutureExt};
 use serde::Deserialize;
 use surrealdb::sql::{Strand, Value};
 use tokio::sync::mpsc::{self, UnboundedSender};
 use tokio_stream::wrappers::UnboundedReceiverStream;
-use warp::ws::WebSocket;
-use warp::ws::{self, Message};
 
 use crate::db_utils::{add_visit_record, db_visits_as_json, print_db_visits};
-use crate::State;
+use crate::AppState;
 
-pub async fn ws_connection(ws: WebSocket, state: State) {
+pub async fn ws_connection(ws: WebSocket, state: AppState) {
     let (mut ws_tx, mut ws_rx) = ws.split();
 
     let (tx, rx) = mpsc::unbounded_channel();
@@ -30,19 +29,27 @@ pub async fn ws_connection(ws: WebSocket, state: State) {
     while let Some(msg_result) = ws_rx.next().await {
         match msg_result {
             Ok(msg) => {
-                if msg.is_text() {
-                    // if let Some(reply) = handle_text_msg(msg, state.clone()).await {
-                    //     match ws_tx.send(reply).await {
-                    //         Ok(_) => {}
-                    //         Err(e) => println!("Websocket ERROR: {:?}", e),
-                    //     }
-                    // };
-                    tokio::spawn(handle_text_msg(msg, state.clone(), tx.clone()));
-                } else if msg.is_binary() {
-                    println!("Websocket ERROR: Binary message not supported");
-                    println!("{:?}", msg);
-                } else if msg.is_close() {
-                    return;
+                // if msg.is_text() {
+                //     // if let Some(reply) = handle_text_msg(msg, state.clone()).await {
+                //     //     match ws_tx.send(reply).await {
+                //     //         Ok(_) => {}
+                //     //         Err(e) => println!("Websocket ERROR: {:?}", e),
+                //     //     }
+                //     // };
+                //     tokio::spawn(handle_text_msg(msg, state.clone(), tx.clone()));
+                // } else if msg.is_binary() {
+                //     println!("Websocket ERROR: Binary message not supported");
+                //     println!("{:?}", msg);
+                // } else if msg.is_close() {
+                //     return;
+                // }
+                match msg {
+                    Message::Text(text_msg) => {
+                        tokio::spawn(handle_text_msg(text_msg, state.clone(), tx.clone()));
+                    }
+                    Message::Binary(_) => println!("Websocket ERROR: Binary message not supported"),
+                    Message::Close(_) => return,
+                    _ => {}
                 }
             }
             Err(e) => {
@@ -54,13 +61,11 @@ pub async fn ws_connection(ws: WebSocket, state: State) {
 }
 
 async fn handle_text_msg(
-    message: Message,
-    state: State,
+    message: String,
+    state: AppState,
     tx: UnboundedSender<Message>,
 ) -> Option<Message> {
-    let msg = message.to_str().unwrap();
-
-    let req: Req = match serde_json::from_str(msg) {
+    let req: Req = match serde_json::from_str(&message) {
         Ok(r) => r,
         Err(e) => {
             println!("JSON parsing ERROR: {:?}", e);
@@ -79,7 +84,7 @@ async fn handle_text_msg(
 
 async fn handle_create(
     req: CreateReq,
-    state: State,
+    state: AppState,
     tx: UnboundedSender<Message>,
 ) -> Option<Message> {
     let mut vars = BTreeMap::new();
@@ -107,7 +112,7 @@ async fn handle_create(
     let select_result = select_response[0].output().unwrap();
 
     if let Value::Array(rows) = select_result {
-        let reply = Message::text(serde_json::to_string(rows).unwrap());
+        let reply = Message::Text(serde_json::to_string(rows).unwrap());
         println!("{:?}", reply);
         tx.send(reply).unwrap();
         None
@@ -116,7 +121,11 @@ async fn handle_create(
     }
 }
 
-async fn handle_read(req: ReadReq, state: State, tx: UnboundedSender<Message>) -> Option<Message> {
+async fn handle_read(
+    req: ReadReq,
+    state: AppState,
+    tx: UnboundedSender<Message>,
+) -> Option<Message> {
     // let mut vars = BTreeMap::new();
     // vars.insert(
     //     "text".to_string(),
@@ -131,7 +140,7 @@ async fn handle_read(req: ReadReq, state: State, tx: UnboundedSender<Message>) -
     let select_result = select_response[0].output().unwrap();
 
     if let Value::Array(rows) = select_result {
-        let reply = Message::text(serde_json::to_string(rows).unwrap());
+        let reply = Message::Text(serde_json::to_string(rows).unwrap());
         println!("{:?}", reply);
         tx.send(reply).unwrap();
         None

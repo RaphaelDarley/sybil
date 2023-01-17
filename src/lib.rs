@@ -20,8 +20,10 @@ pub struct InnerState {
 //     }
 // }
 
-pub type State = Arc<InnerState>;
+pub type AppState = Arc<InnerState>;
 
-pub fn add_state(state: State) -> impl Filter<Extract = (State,), Error = Infallible> + Clone {
+pub fn add_state(
+    state: AppState,
+) -> impl Filter<Extract = (AppState,), Error = Infallible> + Clone {
     warp::any().map(move || state.clone())
 }
