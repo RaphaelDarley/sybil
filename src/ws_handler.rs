@@ -3,11 +3,11 @@ use std::collections::BTreeMap;
 use futures_util::stream::SplitSink;
 use futures_util::{SinkExt, StreamExt, TryFutureExt};
 use serde::Deserialize;
-use surrealdb::sql::{Strand, Value};
+use surrealdb::sql::{Strand, Thing, Value};
 use tokio::sync::mpsc::{self, UnboundedSender};
 use tokio_stream::wrappers::UnboundedReceiverStream;
+use warp::ws::Message;
 use warp::ws::WebSocket;
-use warp::ws::{self, Message};
 
 use crate::db_utils::{add_visit_record, db_visits_as_json, print_db_visits};
 use crate::State;
@@ -160,12 +160,52 @@ async fn handle_read(req: ReadReq, state: State, tx: UnboundedSender<Message>) -
     }
 }
 
+async fn handle_update(
+    req: UpdateReq,
+    state: State,
+    tx: UnboundedSender<Message>,
+) -> Option<Message> {
+    let mut vars = BTreeMap::new();
+    vars.insert(
+        "text".to_string(),
+        surrealdb::sql::Value::Strand(Strand::from(req.text)),
+    );
+    let record = req.id.split_once(":").unwrap();
+    vars.insert(
+        "record".to_string(),
+        surrealdb::sql::Value::Thing(Thing::from(record)),
+    );
+    state
+        .dsconn
+        .execute("UPDATE $record SET text = $text", Some(vars), false)
+        .await
+        .unwrap();
+
+    //from read handler sends back rows with changes
+    let select_response = state
+        .dsconn
+        .execute("SELECT * FROM item", None, false)
+        .await
+        .unwrap();
+
+    let select_result = select_response[0].output().unwrap();
+
+    if let Value::Array(rows) = select_result {
+        let reply = Message::text(serde_json::to_string(rows).unwrap());
+        println!("{:?}", reply);
+        tx.send(reply).unwrap();
+        None
+    } else {
+        panic!("DB vists hasn't returned array of rows")
+    }
+}
+
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "lowercase")]
 enum Req {
     Create(CreateReq),
     Read(ReadReq),
-    Update,
+    Update(UpdateReq),
     Delete,
 }
 
@@ -177,4 +217,10 @@ struct CreateReq {
 #[derive(Deserialize, Debug)]
 struct ReadReq {
     text_search: Option<String>,
+}
+
+#[derive(Deserialize, Debug)]
+struct UpdateReq {
+    id: String,
+    text: String,
 }

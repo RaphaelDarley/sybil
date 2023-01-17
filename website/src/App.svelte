@@ -3,6 +3,8 @@
 	let websocketStatus = "initial";
 	let textToAdd;
 	let textSearch;
+	let uiMode = "view";
+	let opItem;
 
 	const websocket = new WebSocket("ws://127.0.0.1:5000/ws");
 	websocket.addEventListener("open", () => {
@@ -40,34 +42,61 @@
 			websocket.send(
 				JSON.stringify({ read: { text_search: textSearch } })
 			);
+			uiMode = "view";
 		}}>search</button
 	>
 
-	<label for="text">new note text:</label>
-	<input name="text" type="text" bind:value={textToAdd} />
-
 	<button
 		on:click={() => {
-			websocket.send(JSON.stringify({ create: { text: textToAdd } }));
+			uiMode = "create";
 		}}>add</button
 	>
 
-	<table>
-		<th>id</th>
-		<th>time created</th>
-		<th>text</th>
+	{#if uiMode == "view"}
+		<table>
+			<th>id</th>
+			<th>time created</th>
+			<th>text</th>
+			<th>edit</th>
 
-		{#each items as item}
-			<tr>
-				<td>{item.id}</td>
-				<td>{item.time_created}</td>
-				<td>{item.text}</td>
-			</tr>
-			<!-- <p>{item["text"]}</p> -->
-		{:else}
-			<p>No Results</p>
-		{/each}
-	</table>
+			{#each items as item}
+				<tr>
+					<td>{item.id}</td>
+					<td>{item.time_created}</td>
+					<td>{item.text}</td>
+					<td
+						><button
+							on:click={() => {
+								opItem = item.id;
+								uiMode = "update";
+							}}>update</button
+						></td
+					>
+				</tr>
+			{:else}
+				<p>No Results</p>
+			{/each}
+		</table>
+	{/if}
+
+	{#if uiMode == "create"}
+		<label for="text">new note text:</label>
+		<input name="text" type="text" bind:value={textToAdd} />
+
+		<button
+			on:click={() => {
+				websocket.send(JSON.stringify({ create: { text: textToAdd } }));
+			}}>add</button
+		>
+	{/if}
+
+	{#if uiMode == "update"}
+		<p>
+			{items.find((item) => {
+				return item.id == opItem;
+			}).text}
+		</p>
+	{/if}
 </main>
 
 <style>
