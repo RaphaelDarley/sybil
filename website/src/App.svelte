@@ -67,7 +67,7 @@
 					<td
 						><button
 							on:click={() => {
-								opItem = item.id;
+								opItem = item;
 								uiMode = "update";
 							}}>update</button
 						></td
@@ -91,11 +91,15 @@
 	{/if}
 
 	{#if uiMode == "update"}
-		<p>
-			{items.find((item) => {
-				return item.id == opItem;
-			}).text}
-		</p>
+		<br />
+		<textarea name="" id="" cols="50" rows="10" bind:value={opItem.text} />
+
+		<button
+			on:click={() => {
+				websocket.send(JSON.stringify({ update: opItem }));
+				uiMode = "view";
+			}}>update</button
+		>
 	{/if}
 </main>
 

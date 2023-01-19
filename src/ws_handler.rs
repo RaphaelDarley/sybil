@@ -73,6 +73,7 @@ async fn handle_text_msg(
     match req {
         Req::Create(c) => handle_create(c, state, tx).await,
         Req::Read(r) => handle_read(r, state, tx).await,
+        Req::Update(u) => handle_update(u, state, tx).await,
         _ => None,
     }
 }
