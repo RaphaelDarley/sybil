@@ -5,6 +5,7 @@
 	let textSearch;
 	let uiMode = "view";
 	let opItem;
+	let dispConfig = { order: "newest" };
 
 	const websocket = new WebSocket("ws://127.0.0.1:5000/ws");
 	websocket.addEventListener("open", () => {
@@ -15,6 +16,14 @@
 	websocket.addEventListener("message", ({ data }) => {
 		console.log(data);
 		items = JSON.parse(data);
+		items = items.map((item) => {
+			item.time_created = Date.parse(item.time_created);
+			return item;
+		});
+
+		switch (dispConfig.order) {
+			case "newest":
+		}
 	});
 	websocket.addEventListener("close", () => {
 		websocketStatus = "closed";
