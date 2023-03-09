@@ -10,6 +10,7 @@ use warp::ws::Message;
 use warp::ws::WebSocket;
 
 use crate::db_utils::{add_visit_record, db_visits_as_json, print_db_visits};
+use crate::item::Item;
 use crate::State;
 
 pub async fn ws_connection(ws: WebSocket, state: State) {

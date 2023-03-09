@@ -1,6 +1,7 @@
 pub mod db_utils;
 pub mod http_handler;
 pub mod ws_handler;
+pub mod item;
 
 use db_utils::{make_or_load_ds_and_sess, DSConn};
 use std::{convert::Infallible, sync::Arc};
