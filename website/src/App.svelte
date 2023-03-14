@@ -1,4 +1,8 @@
 <script>
+	import { debug } from "svelte/internal";
+
+	let types = { note: [("text", "largeText")] };
+
 	let items = [];
 	let websocketStatus = "initial";
 	let textToAdd;
@@ -6,6 +10,7 @@
 	let uiMode = "view";
 	let opItem;
 	let dispConfig = { order: "newest" };
+	let provText = "";
 
 	const websocket = new WebSocket("ws://127.0.0.1:5000/ws");
 	websocket.addEventListener("open", () => {
@@ -76,7 +81,7 @@
 					<td
 						><button
 							on:click={() => {
-								opItem = item;
+								opItem = item.id;
 								uiMode = "update";
 							}}>update</button
 						></td
@@ -94,21 +99,26 @@
 
 		<button
 			on:click={() => {
-				websocket.send(JSON.stringify({ create: { text: textToAdd } }));
+				websocket.send(
+					JSON.stringify({
+						create: { item: { note: { text: textToAdd } } },
+					})
+				);
+				textToAdd = "";
+				uiMode = "view";
 			}}>add</button
 		>
 	{/if}
 
 	{#if uiMode == "update"}
-		<br />
-		<textarea name="" id="" cols="50" rows="10" bind:value={opItem.text} />
-
-		<button
-			on:click={() => {
-				websocket.send(JSON.stringify({ update: opItem }));
-				uiMode = "view";
-			}}>update</button
-		>
+		{(provText = items.find((item) => {
+			return item.id == opItem;
+		}).text)}
+		<p>
+			{items.find((item) => {
+				return item.id == opItem;
+			}).text}
+		</p>
 	{/if}
 </main>
 

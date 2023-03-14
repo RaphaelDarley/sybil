@@ -85,10 +85,19 @@ async fn handle_create(
     tx: UnboundedSender<Message>,
 ) -> Option<Message> {
     let mut vars = BTreeMap::new();
-    vars.insert(
-        "text".to_string(),
-        surrealdb::sql::Value::Strand(Strand::from(req.text)),
-    );
+    // vars.insert(
+    //     "text".to_string(),
+    //     surrealdb::sql::Value::Strand(Strand::from(req.text)),
+    // );
+
+    req.item.add_to_vars(&mut vars);
+
+    let set_query = vars
+        .iter()
+        .map(|(k, _)| format!("{} = ${}", k, k))
+        .collect::<Vec<String>>()
+        .join(", ");
+
     state
         .dsconn
         .execute(
@@ -213,7 +222,7 @@ enum Req {
 
 #[derive(Deserialize, Debug)]
 struct CreateReq {
-    text: String,
+    item: Item,
 }
 
 #[derive(Deserialize, Debug)]
