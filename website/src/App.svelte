@@ -1,16 +1,21 @@
 <script>
-	import { debug } from "svelte/internal";
-
-	let types = { note: [("text", "largeText")] };
+	// let types = { note: [("text", "largeText")] };
 
 	let items = [];
 	let websocketStatus = "initial";
-	let textToAdd;
 	let textSearch;
 	let uiMode = "view";
 	let opItem;
 	let dispConfig = { order: "newest" };
 	let provText = "";
+	let itemTypes = {
+		note: { text: ["text", "note text:"] },
+		person: { name: ["text", "name:"], nickname: ["text", "nickname:"] },
+	};
+	let opType = Object.keys(itemTypes)[0];
+	let draftItem = {};
+
+	console.log(itemTypes[opType]);
 
 	const websocket = new WebSocket("ws://127.0.0.1:5000/ws");
 	websocket.addEventListener("open", () => {
@@ -94,9 +99,55 @@
 	{/if}
 
 	{#if uiMode == "create"}
-		<label for="text">new note text:</label>
-		<input name="text" type="text" bind:value={textToAdd} />
+		<br />
+		<select bind:value={opType}>
+			{#each Object.keys(itemTypes) as itemType}
+				<option value={itemType}>{itemType}</option>
+			{/each}
+		</select>
 
+		{#each Object.entries(itemTypes[opType]) as field}
+			{(draftItem[field[0]] = "")}
+			{#if field[1][0] == "text"}
+				<p>text field</p>
+				<label for={field[0]}>{field[1][1]}</label>
+				<input type="text" name={field[0]} id={field[0]} />
+			{:else}
+				<h1>ERROR: UNKNOWN FIELD TYPE</h1>
+			{/if}
+		{/each}
+
+		<button
+			on:click={() => {
+				// for (fieldName in Object.keys(itemTypes[opType]))
+
+				console.log(itemTypes[opType]);
+
+				// Object.keys(itemTypes[opType]).forEach((field) => {
+				// 	console.log(field[0]);
+				// 	let formField = document.getElementById(field[0]);
+				// 	console.log(formField);
+				// 	draftItem[field[0]] = formField.value;
+				// });
+
+				let fields = Object.keys(itemTypes[opType]);
+				for (let i = 0; i < itemTypes[opType].length; i++) {
+					console.log(fields[i]);
+				}
+
+				console.log(draftItem);
+
+				// websocket.send(
+				// 	JSON.stringify({
+				// 		create: { item: { note: { text: textToAdd } } },
+				// 	})
+				// );
+				// uiMode = "view";
+			}}>add</button
+		>
+
+		<!-- <label for="text">new note text:</label> -->
+		<!-- <input name="text" type="text" bind:value={textToAdd} />
 		<button
 			on:click={() => {
 				websocket.send(
@@ -107,7 +158,7 @@
 				textToAdd = "";
 				uiMode = "view";
 			}}>add</button
-		>
+		> -->
 	{/if}
 
 	{#if uiMode == "update"}
