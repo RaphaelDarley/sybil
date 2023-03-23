@@ -1,4 +1,6 @@
 <script>
+	import { claim_space } from "svelte/internal";
+
 	// let types = { note: [("text", "largeText")] };
 
 	let items = [];
@@ -13,7 +15,6 @@
 		person: { name: ["text", "name:"], nickname: ["text", "nickname:"] },
 	};
 	let opType = Object.keys(itemTypes)[0];
-	let draftItem = {};
 
 	console.log(itemTypes[opType]);
 
@@ -107,7 +108,6 @@
 		</select>
 
 		{#each Object.entries(itemTypes[opType]) as field}
-			{(draftItem[field[0]] = "")}
 			{#if field[1][0] == "text"}
 				<p>text field</p>
 				<label for={field[0]}>{field[1][1]}</label>
@@ -119,30 +119,32 @@
 
 		<button
 			on:click={() => {
-				// for (fieldName in Object.keys(itemTypes[opType]))
+				let draftItem = {};
 
 				console.log(itemTypes[opType]);
 
-				// Object.keys(itemTypes[opType]).forEach((field) => {
-				// 	console.log(field[0]);
-				// 	let formField = document.getElementById(field[0]);
-				// 	console.log(formField);
-				// 	draftItem[field[0]] = formField.value;
-				// });
-
 				let fields = Object.keys(itemTypes[opType]);
-				for (let i = 0; i < itemTypes[opType].length; i++) {
+				console.log("fields: ", fields);
+				for (let i = 0; i < fields.length; i++) {
 					console.log(fields[i]);
+					let formField = document.getElementById(fields[i]);
+					// console.log(formField);
+					draftItem[fields[i]] = formField.value;
 				}
 
 				console.log(draftItem);
 
-				// websocket.send(
-				// 	JSON.stringify({
-				// 		create: { item: { note: { text: textToAdd } } },
-				// 	})
-				// );
-				// uiMode = "view";
+				let itemToSend = {};
+				itemToSend[opType] = draftItem;
+
+				console.log(JSON.stringify(itemToSend));
+
+				websocket.send(
+					JSON.stringify({
+						create: { item: itemToSend },
+					})
+				);
+				uiMode = "view";
 			}}>add</button
 		>
 
