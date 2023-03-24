@@ -1,8 +1,4 @@
 <script>
-	import { claim_space } from "svelte/internal";
-
-	// let types = { note: [("text", "largeText")] };
-
 	let items = [];
 	let websocketStatus = "initial";
 	let textSearch;
@@ -34,6 +30,10 @@
 
 		switch (dispConfig.order) {
 			case "newest":
+				items = items.sort((a, b) => {
+					return a.time_created - b.time_created;
+				});
+				break;
 		}
 	});
 	websocket.addEventListener("close", () => {
@@ -71,6 +71,15 @@
 			uiMode = "create";
 		}}>add</button
 	>
+
+	<p
+		on:click={() => {
+			alert("clicked");
+		}}
+		class="item_link"
+	>
+		test link
+	</p>
 
 	{#if uiMode == "view"}
 		<br />
@@ -167,12 +176,6 @@
 	<!-- create  -->
 
 	{#if uiMode == "update"}
-		<!-- <p>
-			{items.find((item) => {
-				return item.id == opItem;
-			}).text}
-		</p> -->
-
 		{#each Object.entries(itemTypes[opType]) as field}
 			{#if field[1][0] == "text"}
 				<label for={field[0]}>{field[1][1]}</label>
@@ -248,5 +251,9 @@
 		main {
 			max-width: none;
 		}
+	}
+
+	.item_link {
+		cursor: pointer;
 	}
 </style>
