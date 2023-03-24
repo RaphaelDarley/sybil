@@ -6,6 +6,7 @@ use serde::Deserialize;
 use surrealdb::sql::{Strand, Thing, Value};
 use tokio::sync::mpsc::{self, UnboundedSender};
 use tokio_stream::wrappers::UnboundedReceiverStream;
+use warp::query;
 use warp::ws::Message;
 use warp::ws::WebSocket;
 
@@ -61,6 +62,8 @@ async fn handle_text_msg(
 ) -> Option<Message> {
     let msg = message.to_str().unwrap();
 
+    println!("raw request:{}", msg);
+
     let req: Req = match serde_json::from_str(msg) {
         Ok(r) => r,
         Err(e) => {
@@ -85,17 +88,26 @@ async fn handle_create(
     tx: UnboundedSender<Message>,
 ) -> Option<Message> {
     let mut vars = BTreeMap::new();
-    vars.insert(
-        "text".to_string(),
-        surrealdb::sql::Value::Strand(Strand::from(req.text)),
-    );
+    // vars.insert(
+    //     "text".to_string(),
+    //     surrealdb::sql::Value::Strand(Strand::from(req.text)),
+    // );
+
+    req.item.add_to_vars(&mut vars);
+
+    let set_query = vars
+        .iter()
+        .map(|(k, _)| format!("{} = ${}", k, k))
+        .collect::<Vec<String>>()
+        .join(", ");
+
+    println!("{}", set_query);
+
+    let query = format!("CREATE item SET time_created = time::now(), {}", set_query);
+
     state
         .dsconn
-        .execute(
-            "CREATE item SET time_created = time::now(), text = $text",
-            Some(vars),
-            false,
-        )
+        .execute(&query, Some(vars), false)
         .await
         .unwrap();
 
@@ -168,18 +180,28 @@ async fn handle_update(
     tx: UnboundedSender<Message>,
 ) -> Option<Message> {
     let mut vars = BTreeMap::new();
-    vars.insert(
-        "text".to_string(),
-        surrealdb::sql::Value::Strand(Strand::from(req.text)),
-    );
+
+    req.item.add_to_vars(&mut vars);
+
+    let set_query = vars
+        .iter()
+        .map(|(k, _)| format!("{} = ${}", k, k))
+        .collect::<Vec<String>>()
+        .join(", ");
+
+    println!("{}", set_query);
+
     let record = req.id.split_once(":").unwrap();
     vars.insert(
         "record".to_string(),
         surrealdb::sql::Value::Thing(Thing::from(record)),
     );
+
+    let query = format!("UPDATE $record SET {}", set_query);
+
     state
         .dsconn
-        .execute("UPDATE $record SET text = $text", Some(vars), false)
+        .execute(&query, Some(vars), false)
         .await
         .unwrap();
 
@@ -213,7 +235,7 @@ enum Req {
 
 #[derive(Deserialize, Debug)]
 struct CreateReq {
-    text: String,
+    item: Item,
 }
 
 #[derive(Deserialize, Debug)]
@@ -224,5 +246,5 @@ struct ReadReq {
 #[derive(Deserialize, Debug)]
 struct UpdateReq {
     id: String,
-    text: String,
+    item: Item,
 }
