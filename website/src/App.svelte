@@ -73,17 +73,33 @@
 	>
 
 	{#if uiMode == "view"}
+		<br />
+		<select bind:value={opType}>
+			{#each Object.keys(itemTypes) as itemType}
+				<option value={itemType}>{itemType}</option>
+			{/each}
+		</select>
+
 		<table>
 			<th>id</th>
 			<th>time created</th>
-			<th>text</th>
+			<!-- <th>text</th> -->
+			{#each Object.keys(itemTypes[opType]) as type}
+				<th>{type}</th>
+			{/each}
+
 			<th>edit</th>
 
-			{#each items as item}
+			{#each items.filter((i) => i.type == opType) as item}
 				<tr>
 					<td>{item.id}</td>
 					<td>{item.time_created}</td>
-					<td>{item.text}</td>
+
+					<!-- <td>{item.text}</td> -->
+					{#each Object.keys(itemTypes[opType]) as type}
+						<td>{item[type]}</td>
+					{/each}
+
 					<td
 						><button
 							on:click={() => {
@@ -109,7 +125,6 @@
 
 		{#each Object.entries(itemTypes[opType]) as field}
 			{#if field[1][0] == "text"}
-				<p>text field</p>
 				<label for={field[0]}>{field[1][1]}</label>
 				<input type="text" name={field[0]} id={field[0]} />
 			{:else}
