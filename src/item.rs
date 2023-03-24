@@ -50,6 +50,7 @@ impl ToMap for Note {
 #[derive(Deserialize, Debug)]
 pub struct Person {
     name: String,
+    nickname: String,
 }
 
 impl ToMap for Person {
@@ -62,6 +63,10 @@ impl ToMap for Person {
         map.insert(
             "name".to_string(),
             surrealdb::sql::Value::Strand(Strand::from(self.name.clone())),
+        );
+        map.insert(
+            "nickname".to_string(),
+            surrealdb::sql::Value::Strand(Strand::from(self.nickname.clone())),
         );
         map
     }

@@ -104,6 +104,7 @@
 						><button
 							on:click={() => {
 								opItem = item.id;
+								opType = item.type;
 								uiMode = "update";
 							}}>update</button
 						></td
@@ -114,6 +115,7 @@
 			{/each}
 		</table>
 	{/if}
+	<!-- view  -->
 
 	{#if uiMode == "create"}
 		<br />
@@ -143,7 +145,6 @@
 				for (let i = 0; i < fields.length; i++) {
 					console.log(fields[i]);
 					let formField = document.getElementById(fields[i]);
-					// console.log(formField);
 					draftItem[fields[i]] = formField.value;
 				}
 
@@ -162,32 +163,63 @@
 				uiMode = "view";
 			}}>add</button
 		>
-
-		<!-- <label for="text">new note text:</label> -->
-		<!-- <input name="text" type="text" bind:value={textToAdd} />
-		<button
-			on:click={() => {
-				websocket.send(
-					JSON.stringify({
-						create: { item: { note: { text: textToAdd } } },
-					})
-				);
-				textToAdd = "";
-				uiMode = "view";
-			}}>add</button
-		> -->
 	{/if}
+	<!-- create  -->
 
 	{#if uiMode == "update"}
-		{(provText = items.find((item) => {
-			return item.id == opItem;
-		}).text)}
-		<p>
+		<!-- <p>
 			{items.find((item) => {
 				return item.id == opItem;
 			}).text}
-		</p>
+		</p> -->
+
+		{#each Object.entries(itemTypes[opType]) as field}
+			{#if field[1][0] == "text"}
+				<label for={field[0]}>{field[1][1]}</label>
+				<input
+					type="text"
+					name={field[0]}
+					id={field[0]}
+					value={items.find((item) => {
+						return item.id == opItem;
+					})[field[0]]}
+				/>
+			{:else}
+				<h1>ERROR: UNKNOWN FIELD TYPE</h1>
+			{/if}
+		{/each}
+
+		<button
+			on:click={() => {
+				let draftItem = {};
+
+				console.log(itemTypes[opType]);
+
+				let fields = Object.keys(itemTypes[opType]);
+				console.log("fields: ", fields);
+				for (let i = 0; i < fields.length; i++) {
+					console.log(fields[i]);
+					let formField = document.getElementById(fields[i]);
+					draftItem[fields[i]] = formField.value;
+				}
+
+				console.log(draftItem);
+
+				let itemToSend = {};
+				itemToSend[opType] = draftItem;
+
+				console.log(JSON.stringify(itemToSend));
+
+				websocket.send(
+					JSON.stringify({
+						update: { id: opItem, item: itemToSend },
+					})
+				);
+				uiMode = "view";
+			}}>update</button
+		>
 	{/if}
+	<!-- update  -->
 </main>
 
 <style>
