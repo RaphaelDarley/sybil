@@ -6,6 +6,7 @@ use serde::Deserialize;
 use surrealdb::sql::{Strand, Thing, Value};
 use tokio::sync::mpsc::{self, UnboundedSender};
 use tokio_stream::wrappers::UnboundedReceiverStream;
+use warp::query;
 use warp::ws::Message;
 use warp::ws::WebSocket;
 
@@ -98,13 +99,13 @@ async fn handle_create(
         .collect::<Vec<String>>()
         .join(", ");
 
+    println!("{}", set_query);
+
+    let query = format!("CREATE item SET time_created = time::now(), {}", set_query);
+
     state
         .dsconn
-        .execute(
-            "CREATE item SET time_created = time::now(), text = $text",
-            Some(vars),
-            false,
-        )
+        .execute(&query, Some(vars), false)
         .await
         .unwrap();
 

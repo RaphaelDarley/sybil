@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use serde::Deserialize;
-use surrealdb::sql::{Strand, Thing, Value};
+use surrealdb::sql::{Strand, Value};
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "lowercase")]
