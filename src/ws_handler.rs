@@ -88,10 +88,6 @@ async fn handle_create(
     tx: UnboundedSender<Message>,
 ) -> Option<Message> {
     let mut vars = BTreeMap::new();
-    // vars.insert(
-    //     "text".to_string(),
-    //     surrealdb::sql::Value::Strand(Strand::from(req.text)),
-    // );
 
     req.item.add_to_vars(&mut vars);
 

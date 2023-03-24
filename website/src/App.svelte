@@ -7,12 +7,60 @@
 	let dispConfig = { order: "newest" };
 	let provText = "";
 	let itemTypes = {
-		note: { text: ["text", "note text:"] },
+		note: { title: ["text", "title:"], text: ["text", "note text:"] },
 		person: { name: ["text", "name:"], nickname: ["text", "nickname:"] },
 	};
 	let opType = Object.keys(itemTypes)[0];
 
+	function uiUpdate(item) {
+		opItem = item.id;
+		opType = item.type;
+		uiMode = "update";
+	}
+
+	function uiInspect(itemId) {
+		websocket.send(JSON.stringify({ read: {} }));
+		opItem = itemId;
+		let item = items.find((item) => {
+			return item.id == opItem;
+		});
+		console.log(item);
+		opType = item.type;
+		uiMode = "inspect";
+	}
+
 	console.log(itemTypes[opType]);
+
+	function attachSpanClickListeners(node) {
+		function handleClick(event) {
+			console.log("Clicked link to:", event.target.id);
+			uiInspect(event.target.id);
+		}
+
+		function attachListeners() {
+			node.querySelectorAll("span").forEach((span) => {
+				span.addEventListener("click", handleClick);
+			});
+		}
+
+		function detachListeners() {
+			node.querySelectorAll("span").forEach((span) => {
+				span.removeEventListener("click", handleClick);
+			});
+		}
+
+		attachListeners();
+
+		return {
+			update() {
+				detachListeners();
+				attachListeners();
+			},
+			destroy() {
+				detachListeners();
+			},
+		};
+	}
 
 	const websocket = new WebSocket("ws://127.0.0.1:5000/ws");
 	websocket.addEventListener("open", () => {
@@ -72,14 +120,14 @@
 		}}>add</button
 	>
 
-	<p
+	<!-- <p
 		on:click={() => {
 			alert("clicked");
 		}}
 		class="item_link"
 	>
 		test link
-	</p>
+	</p> -->
 
 	{#if uiMode == "view"}
 		<br />
@@ -100,7 +148,7 @@
 			<th>edit</th>
 
 			{#each items.filter((i) => i.type == opType) as item}
-				<tr>
+				<tr on:click={uiInspect(item.id)}>
 					<td>{item.id}</td>
 					<td>{item.time_created}</td>
 
@@ -109,15 +157,7 @@
 						<td>{item[type]}</td>
 					{/each}
 
-					<td
-						><button
-							on:click={() => {
-								opItem = item.id;
-								opType = item.type;
-								uiMode = "update";
-							}}>update</button
-						></td
-					>
+					<td><button on:click={uiUpdate(item)}>update</button></td>
 				</tr>
 			{:else}
 				<p>No Results</p>
@@ -223,6 +263,27 @@
 		>
 	{/if}
 	<!-- update  -->
+
+	{#if uiMode == "inspect"}
+		{#each Object.entries(itemTypes[opType]) as field}
+			{#if field[1][0] == "text"}
+				<label for={field[0]}>{field[1][1]}</label>
+				<p
+					type="text"
+					name={field[0]}
+					id={field[0]}
+					use:attachSpanClickListeners
+				>
+					{@html items.find((item) => {
+						return item.id == opItem;
+					})[field[0]]}
+				</p>
+			{:else}
+				<h1>ERROR: UNKNOWN FIELD TYPE</h1>
+			{/if}
+		{/each}
+	{/if}
+	<!-- inspect  -->
 </main>
 
 <style>
